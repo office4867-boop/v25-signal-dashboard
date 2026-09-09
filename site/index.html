@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="종목별 ZLBUY 신호와 V25 청산 성과를 분석하는 대시보드"
+    />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>V25 Signal Audit</title>
+    <link rel="stylesheet" href="./app.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <a class="brand" href="./" aria-label="V25 Signal Audit 홈">
+          <span class="brand-mark">V25</span>
+          <span>
+            <strong>Signal Audit</strong>
+            <small id="environmentLabel">LOCAL RESEARCH TERMINAL</small>
+          </span>
+        </a>
+
+        <form id="searchForm" class="search-form">
+          <label class="field stock-field">
+            <span>종목</span>
+            <input
+              id="stockInput"
+              name="stock"
+              value="삼성전기"
+              autocomplete="off"
+              placeholder="종목명 또는 6자리 코드"
+              required
+            />
+          </label>
+          <label class="field date-field">
+            <span>시작일</span>
+            <input id="startInput" name="start" inputmode="numeric" placeholder="전체" />
+          </label>
+          <label class="field date-field">
+            <span>종료일</span>
+            <input id="endInput" name="end" inputmode="numeric" placeholder="최신" />
+          </label>
+          <label class="field scope-field">
+            <span>신호 범위</span>
+            <select id="scopeSelect" name="scope">
+              <option value="complete">V25 완전 데이터</option>
+              <option value="all">모든 ZLBUY</option>
+              <option value="eligible">V25 적격만</option>
+            </select>
+          </label>
+          <button class="primary-button" type="submit">
+            <span>분석 실행</span>
+            <span aria-hidden="true">↗</span>
+          </button>
+        </form>
+      </header>
+
+      <main>
+        <section id="statusPanel" class="status-panel" aria-live="polite">
+          <span class="loader" aria-hidden="true"></span>
+          <div>
+            <strong id="loadingTitle">신호 이력을 계산하고 있습니다</strong>
+            <p id="loadingDescription">가격·이브닝·시장 데이터를 결합하는 중입니다.</p>
+          </div>
+        </section>
+
+        <section id="errorPanel" class="error-panel" hidden aria-live="assertive">
+          <span>!</span>
+          <div>
+            <strong>분석을 완료하지 못했습니다</strong>
+            <p id="errorMessage"></p>
+          </div>
+        </section>
+
+        <div id="dashboard" hidden>
+          <section class="result-header">
+            <div>
+              <div class="eyebrow-row">
+                <span id="marketBadge" class="live-badge">LOCAL DB</span>
+                <span id="asOfText" class="muted"></span>
+              </div>
+              <h1><span id="stockName"></span><small id="stockCode"></small></h1>
+              <p id="scopeSummary" class="scope-summary"></p>
+            </div>
+            <div class="header-actions">
+              <div class="segmented" aria-label="평가 방식">
+                <button type="button" data-mode="independent" class="is-active">독립 신호</button>
+                <button type="button" data-mode="sequential">연속매매</button>
+              </div>
+              <button id="exportButton" class="secondary-button" type="button">
+                상세 일지 CSV
+                <span aria-hidden="true">↓</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="metric-grid" aria-label="핵심 성과">
+            <article class="metric-card metric-primary">
+              <span>성숙 승률</span>
+              <strong id="winRateMetric">-</strong>
+              <small id="winLossMetric">-</small>
+            </article>
+            <article class="metric-card">
+              <span>평균 수익률</span>
+              <strong id="averageMetric">-</strong>
+              <small id="medianMetric">-</small>
+            </article>
+            <article class="metric-card">
+              <span>분석 신호</span>
+              <strong id="signalMetric">-</strong>
+              <small id="matureMetric">-</small>
+            </article>
+            <article class="metric-card">
+              <span>평균 MFE / MAE</span>
+              <strong id="excursionMetric">-</strong>
+              <small>진입 후 최대 유리폭 / 불리폭</small>
+            </article>
+            <article class="metric-card">
+              <span>진행 중</span>
+              <strong id="openMetric">-</strong>
+              <small id="skipMetric">-</small>
+            </article>
+          </section>
+
+          <section class="overview-grid">
+            <article class="panel timeline-panel">
+              <div class="panel-heading">
+                <div>
+                  <span class="panel-kicker">SIGNAL MAP</span>
+                  <h2>신호별 실현 수익률</h2>
+                </div>
+                <div class="legend" aria-label="차트 범례">
+                  <span><i class="positive"></i>수익</span>
+                  <span><i class="negative"></i>손실</span>
+                  <span><i class="open"></i>진행 중</span>
+                </div>
+              </div>
+              <div id="timelineChart" class="timeline-chart"></div>
+            </article>
+
+            <aside class="panel filter-panel">
+              <div class="panel-heading compact">
+                <div>
+                  <span class="panel-kicker">V25 GATE</span>
+                  <h2>매수필터 구성</h2>
+                </div>
+              </div>
+              <div id="filterDonut" class="filter-donut"></div>
+              <dl id="filterCounts" class="filter-counts"></dl>
+              <p class="panel-note">적격은 종목 단독 필터 기준이며 슬롯·전체 순위는 포함하지 않습니다.</p>
+            </aside>
+          </section>
+
+          <section class="panel analysis-panel">
+            <div class="panel-heading analysis-heading">
+              <div>
+                <span class="panel-kicker">CONTEXT EDGE</span>
+                <h2>어떤 상황에서 신호가 강했나</h2>
+                <p>성숙 완료 신호의 평균 수익률과 승률을 조건별로 비교합니다.</p>
+              </div>
+              <span class="caution-chip">관찰 결과 · 인과관계 아님</span>
+            </div>
+
+            <div id="insightGrid" class="insight-grid"></div>
+
+            <div class="dimension-layout">
+              <nav id="dimensionTabs" class="dimension-tabs" aria-label="분석 기준"></nav>
+              <div>
+                <div class="axis-labels" aria-hidden="true">
+                  <span>손실</span><span>평균 수익률 0%</span><span>수익</span>
+                </div>
+                <div id="breakdownChart" class="breakdown-chart"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel journal-panel">
+            <div class="panel-heading journal-heading">
+              <div>
+                <span class="panel-kicker">TRADE JOURNAL</span>
+                <h2>신호별 상세 일지</h2>
+                <p>행을 누르면 당시 V25 조건과 가격 경로를 펼쳐볼 수 있습니다.</p>
+              </div>
+              <div class="journal-controls">
+                <label>
+                  <span>결과</span>
+                  <select id="resultFilter">
+                    <option value="all">전체</option>
+                    <option value="win">수익</option>
+                    <option value="loss">손실</option>
+                    <option value="open">진행 중</option>
+                    <option value="eligible">V25 적격</option>
+                  </select>
+                </label>
+                <label>
+                  <span>정렬</span>
+                  <select id="sortSelect">
+                    <option value="date-desc">최신 신호순</option>
+                    <option value="date-asc">오래된 신호순</option>
+                    <option value="return-desc">수익률 높은순</option>
+                    <option value="return-asc">수익률 낮은순</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>신호일</th>
+                    <th>V25</th>
+                    <th>연속</th>
+                    <th class="number-cell">매수종가</th>
+                    <th>청산·평가일</th>
+                    <th class="number-cell">보유일</th>
+                    <th class="number-cell">수익률</th>
+                    <th class="number-cell">MFE</th>
+                    <th class="number-cell">MAE</th>
+                    <th>청산사유</th>
+                    <th><span class="sr-only">상세</span></th>
+                  </tr>
+                </thead>
+                <tbody id="journalBody"></tbody>
+              </table>
+            </div>
+            <div id="emptyJournal" class="empty-state" hidden>선택한 조건에 해당하는 신호가 없습니다.</div>
+          </section>
+
+          <footer class="dashboard-footer">
+            <div id="notes"></div>
+            <p id="environmentFootnote">V25 SIGNAL AUDIT · READ ONLY · LOCAL DATA</p>
+          </footer>
+        </div>
+      </main>
+    </div>
+
+    <script src="./config.js"></script>
+    <script src="./app.js" defer></script>
+  </body>
+</html>
