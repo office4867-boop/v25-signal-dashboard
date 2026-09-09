@@ -4,7 +4,10 @@
 `site/`에는 화면 파일과 종목별 분석 JSON만 있으며, 가격 DB·`.env`·키움
 정보·실제 주문/보유 상태는 포함하지 않습니다.
 
-## 최초 연결
+- 모바일 대시보드: <https://office4867-boop.github.io/v25-signal-dashboard/>
+- GitHub 저장소: <https://github.com/office4867-boop/v25-signal-dashboard>
+
+## 새 컴퓨터에서 다시 연결할 때
 
 1. GitHub에서 이 대시보드 전용 저장소를 만듭니다.
 2. 이 폴더를 해당 저장소의 루트로 연결하고 `main` 브랜치에 올립니다.
