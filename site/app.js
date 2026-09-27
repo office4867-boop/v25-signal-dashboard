@@ -180,7 +180,7 @@ function render() {
   const snapshotText = state.snapshotGeneratedAt
     ? ` · 저장본 ${new Date(state.snapshotGeneratedAt).toLocaleString("ko-KR")}`
     : "";
-  $("#asOfText").textContent = `${formatDate(meta.start)} — ${formatDate(meta.end)} · 확정 일봉${snapshotText}`;
+  $("#asOfText").textContent = `${formatDate(meta.start)} — ${formatDate(meta.end)} · 키움 KRX 차트 일봉${snapshotText}`;
   $("#scopeSummary").textContent =
     meta.scope === "eligible"
       ? "현재 V25 종목 필터를 통과한 ZLBUY만 분석합니다."
